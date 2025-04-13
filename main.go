@@ -19,7 +19,7 @@ func main() {
 
 	mux.HandleFunc("GET /", test)
 	// mux.HandleFunc("GET /get", parentGetTodoMW_V.ServeHTTP)
-	mux.Handle("GET /get", parentGetTodoMW(getTodoMW(getTodo_V)))
+	mux.Handle("GET /get", JWTMW(parentGetTodoMW(getTodoMW(getTodo_V))))
 	mux.HandleFunc("POST /login", login)
 
 	//run server
@@ -57,12 +57,13 @@ func parentGetTodoMW(next http.Handler) http.Handler {
 	})
 }
 
+var secret = []byte("this is secret of jwt practice")
+
 // generate JWT TOKEN
 func generateJWT(payload string) (string, error) {
-	secret := []byte("this is secret of jwt practice")
 	claims := jwt.MapClaims{
 		"data": payload,
-		"exp":  time.Now().Add(time.Minute * 3),
+		"exp":  time.Now().Add(time.Minute * 3).Unix(),
 	}
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
 	s, err := token.SignedString(secret)
@@ -73,7 +74,7 @@ func generateJWT(payload string) (string, error) {
 
 }
 
-// generate JWT
+// dummy login
 func login(w http.ResponseWriter, r *http.Request) {
 	if r.Body != nil {
 		var loginModel_V loginModel
@@ -96,4 +97,39 @@ type loginModel struct {
 }
 type loginRes struct {
 	Jwt_token string `json:"jwt_token"`
+}
+
+// JWT Middleware
+func JWTMW(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		header := r.Header.Get("Authorization")
+		if header == "" || len(header) < 8 {
+			http.Error(w, "No Token Found", http.StatusUnauthorized)
+			return
+		}
+		jwt_token := header[len("bearer "):]
+		var payload_data string
+		JWTParser(jwt_token, w, &payload_data)
+		println("payload = ", payload_data)
+		if payload_data != "" {
+			next.ServeHTTP(w, r)
+		} else {
+			print("wwwwwwwwwww")
+		}
+	})
+}
+
+// JWT parser
+func JWTParser(jwt_token string, w http.ResponseWriter, payload_data *string) {
+	token, err := jwt.Parse(jwt_token, func(t *jwt.Token) (interface{}, error) {
+		return secret, nil
+	})
+
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusBadGateway)
+		return
+	}
+
+	claim := token.Claims.(jwt.MapClaims)
+	*payload_data = claim["data"].(string)
 }
