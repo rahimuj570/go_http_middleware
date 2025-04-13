@@ -1,6 +1,7 @@
 package main
 
 import (
+	"encoding/json"
 	"fmt"
 	"log"
 	"net/http"
@@ -19,6 +20,7 @@ func main() {
 	mux.HandleFunc("GET /", test)
 	// mux.HandleFunc("GET /get", parentGetTodoMW_V.ServeHTTP)
 	mux.Handle("GET /get", parentGetTodoMW(getTodoMW(getTodo_V)))
+	mux.HandleFunc("POST /login", login)
 
 	//run server
 	err := http.ListenAndServe(":8000", mux)
@@ -62,8 +64,36 @@ func generateJWT(payload string) (string, error) {
 		"data": payload,
 		"exp":  time.Now().Add(time.Minute * 3),
 	}
-	token := jwt.NewWithClaims(jwt.SigningMethodES256, claims)
-	return token.SignedString(secret)
+	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
+	s, err := token.SignedString(secret)
+	if err != nil {
+		print("errrrrrrrrrr")
+	}
+	return s, err
+
 }
 
-type A interface{}
+// generate JWT
+func login(w http.ResponseWriter, r *http.Request) {
+	if r.Body != nil {
+		var loginModel_V loginModel
+		json.NewDecoder(r.Body).Decode(&loginModel_V)
+		print(loginModel_V.Username)
+		token, err := generateJWT(loginModel_V.Username)
+		if err != nil {
+			print("errrrrrrrrrr22")
+		}
+		var loginRes_V loginRes
+		loginRes_V.Jwt_token = "Bearrer " + token
+		w.Header().Set("Content-type", "application/json")
+		json.NewEncoder(w).Encode(&loginRes_V)
+	}
+}
+
+type loginModel struct {
+	Username string `json:"username"`
+	Password string `json:"password"`
+}
+type loginRes struct {
+	Jwt_token string `json:"jwt_token"`
+}
