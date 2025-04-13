@@ -4,6 +4,9 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"time"
+
+	"github.com/golang-jwt/jwt/v5"
 )
 
 func main() {
@@ -45,5 +48,22 @@ func parentGetTodoMW(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		fmt.Print("Parrent MW is called")
 		next.ServeHTTP(w, r)
+		// a:=A{
+		// 	user:"sss",
+		// 	id:1,
+		// }
 	})
 }
+
+// generate JWT TOKEN
+func generateJWT(payload string) (string, error) {
+	secret := []byte("this is secret of jwt practice")
+	claims := jwt.MapClaims{
+		"data": payload,
+		"exp":  time.Now().Add(time.Minute * 3),
+	}
+	token := jwt.NewWithClaims(jwt.SigningMethodES256, claims)
+	return token.SignedString(secret)
+}
+
+type A interface{}
