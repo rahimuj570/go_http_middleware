@@ -10,11 +10,12 @@ func main() {
 	mux := http.NewServeMux()
 
 	getTodo_V := http.HandlerFunc(getTodo)
-	getTodoMW_V := getTodoMW(getTodo_V)
-	parentGetTodoMW_V := parentGetTodoMW(getTodoMW_V)
+	// getTodoMW_V := getTodoMW(getTodo_V)
+	// parentGetTodoMW_V := parentGetTodoMW(getTodoMW_V)
 
 	mux.HandleFunc("GET /", test)
-	mux.HandleFunc("GET /get", parentGetTodoMW_V.ServeHTTP)
+	// mux.HandleFunc("GET /get", parentGetTodoMW_V.ServeHTTP)
+	mux.Handle("GET /get", parentGetTodoMW(getTodoMW(getTodo_V)))
 
 	//run server
 	err := http.ListenAndServe(":8000", mux)
