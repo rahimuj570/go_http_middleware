@@ -11,9 +11,10 @@ func main() {
 
 	getTodo_V := http.HandlerFunc(getTodo)
 	getTodoMW_V := getTodoMW(getTodo_V)
+	parentGetTodoMW_V := parentGetTodoMW(getTodoMW_V)
 
 	mux.HandleFunc("GET /", test)
-	mux.HandleFunc("GET /get", getTodoMW_V.ServeHTTP)
+	mux.HandleFunc("GET /get", parentGetTodoMW_V.ServeHTTP)
 
 	//run server
 	err := http.ListenAndServe(":8000", mux)
@@ -34,6 +35,14 @@ func test(w http.ResponseWriter, r *http.Request) {
 func getTodoMW(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		fmt.Println("MW WORKING")
+		next.ServeHTTP(w, r)
+	})
+}
+
+// parent MW of getTodoMW
+func parentGetTodoMW(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		fmt.Print("Parrent MW is called")
 		next.ServeHTTP(w, r)
 	})
 }
